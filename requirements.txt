@@ -1,3 +1,4 @@
 flask
 streamlit
 flask-cors
+flask_sqlalchemy
