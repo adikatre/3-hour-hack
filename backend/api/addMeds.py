@@ -1,11 +1,9 @@
 from flask import Blueprint, request, jsonify
-from app import db, get_db_connection
-import sqlite3
+from db import get_db_connection   # import only from db.py
 
-# Create blueprint for addMeds API
 addMeds_bp = Blueprint("addMeds", __name__)
 
-# POST /api/addMeds
+
 @addMeds_bp.route("/addMeds", methods=["POST"])
 def add_meds():
     try:
@@ -17,7 +15,6 @@ def add_meds():
         name = data["name"]
         frequency = data["frequency"]
 
-        # Insert into DB
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -34,6 +31,57 @@ def add_meds():
                 "frequency": frequency
             }
         }), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# GET /api/addMeds
+# Returns all stored medications
+
+
+@addMeds_bp.route("/addMeds", methods=["GET"])
+def get_meds():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, frequency FROM medications")
+        rows = cursor.fetchall()
+        conn.close()
+
+        meds = [
+            {"id": row[0], "name": row[1], "frequency": row[2]}
+            for row in rows
+        ]
+
+        return jsonify(meds), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# DELETE /api/addMeds/<id>
+# Deletes a medication by ID
+@addMeds_bp.route("/addMeds/<int:med_id>", methods=["DELETE"])
+def delete_meds(med_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if medication exists
+        cursor.execute("SELECT * FROM medications WHERE id = ?", (med_id,))
+        med = cursor.fetchone()
+        if not med:
+            conn.close()
+            return jsonify({"error": "Medication not found"}), 404
+
+        # Delete it
+        cursor.execute("DELETE FROM medications WHERE id = ?", (med_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": f"Medication with id {med_id} deleted"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Insert code here for GET & DELETE requests. Ensure that it follows the format of the rest of the file.
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
